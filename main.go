@@ -97,16 +97,24 @@ func main() {
 		RenderPage(w, r, "index.gohtml", data)
 	})
 
-	for _, camera := range config.Cameras {
-		r.HandleFunc(camera.ViewURL(), func(w http.ResponseWriter, r *http.Request) {
-			_, ret := HandleAuth(w, r)
-			if ret {
+	r.HandleFunc("/camera/{name}", func(w http.ResponseWriter, r *http.Request) {
+		_, ret := HandleAuth(w, r)
+		if ret {
+			return
+		}
+
+		vars := mux.Vars(r)
+		vName, _ := vars["name"]
+
+		for _, camera := range config.Cameras {
+			if vName == camera.Name {
+				PipeMJPEG(w, r, camera.URL)
 				return
 			}
+		}
 
-			PipeMJPEG(w, r, camera.URL)
-		})
-	}
+		http.NotFound(w, r)
+	})
 
 	r.HandleFunc("/favicon.ico", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "image/x-icon")

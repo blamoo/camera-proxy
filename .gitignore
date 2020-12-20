@@ -1,2 +1,4 @@
 /config/config.json
+/config/server.crt
+/config/server.key
 __debug_bin
