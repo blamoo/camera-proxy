@@ -113,7 +113,7 @@ func main() {
 			}
 		}
 
-		http.NotFound(w, r)
+		RenderError(w, r, "Câmera não encontrada")
 	})
 
 	r.HandleFunc("/favicon.ico", func(w http.ResponseWriter, r *http.Request) {

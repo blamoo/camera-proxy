@@ -1,0 +1,18 @@
+[Unit]
+Description=camera-proxy
+
+[Service]
+User=pi
+Group=pi
+Type=simple
+Restart=always
+RestartSec=5s
+
+# Replace this with the path to the camera-proxy binary
+ExecStart=/home/pi/camera-proxy/camera-proxy 
+
+# Replace this with the path to the folder with your /config/config.json file (usually the same folter of the camera-proxy binary)
+WorkingDirectory=/home/pi/camera-proxy
+
+[Install]
+WantedBy=multi-user.target
