@@ -75,6 +75,12 @@ func main() {
 			session.Values["authenticated"] = false
 			session.Values["user"] = nil
 			session.Save(r, w)
+
+			// r.AddCookie(&http.Cookie{
+			// 	Name:   config.SessionCookieName,
+			// 	Value:  "",
+			// 	MaxAge: -1,
+			// })
 		}
 
 		http.Redirect(w, r, "/login", 302)

@@ -2,11 +2,11 @@ package main
 
 import (
 	"fmt"
+	"net"
 	"net/http"
 	"net/url"
 
 	"github.com/gorilla/sessions"
-	_ "github.com/jinzhu/gorm/dialects/sqlite"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -42,6 +42,20 @@ func CheckAuth(w http.ResponseWriter, r *http.Request) (string, bool) {
 }
 
 func HandleAuth(w http.ResponseWriter, r *http.Request) (string, bool) {
+	ip, _, _ := net.SplitHostPort(r.RemoteAddr)
+	ipParsed := net.ParseIP(ip)
+
+	for _, cidr := range config.AuthWhitelist {
+		_, parsedCidr, err := net.ParseCIDR(cidr)
+		if err != nil {
+			continue
+		}
+
+		if parsedCidr.Contains(ipParsed) {
+			return fmt.Sprintf("%s %s", ip, cidr), false
+		}
+	}
+
 	id, ret := CheckAuth(w, r)
 
 	if ret {

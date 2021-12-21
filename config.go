@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"net"
 	"os"
 )
 
@@ -32,6 +33,7 @@ type Config struct {
 	SessionCookieKey    []byte
 	Users               map[string]string
 	Cameras             []Camera
+	AuthWhitelist       []string
 }
 
 func InitializeConfig() error {
@@ -74,6 +76,14 @@ func InitializeConfig() error {
 		sEnc := base64.StdEncoding.EncodeToString(b)
 		fmt.Println(sEnc)
 		return fmt.Errorf("Atualize seu arquivo de configuração com um valor válido e execute a aplicação novamente")
+	}
+
+	for _, cidr := range config.AuthWhitelist {
+		_, _, err := net.ParseCIDR(cidr)
+
+		if err != nil {
+			return fmt.Errorf("Erro ao carregar whitelist de IPs. Formato correto: 192.168.0.0/24 Formato usado: '%s'. Erro: %s", cidr, err)
+		}
 	}
 
 	return nil
