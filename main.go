@@ -226,17 +226,21 @@ func main() {
 
 	g, _ := errgroup.WithContext(context.Background())
 
-	g.Go(func() error {
-		addr := fmt.Sprintf("%s:%d", config.ServerHost, config.ServerPort)
-		fmt.Printf("Listening: https://%s/\n", addr)
-		return http.ListenAndServeTLS(addr, config.TLSCertFile, config.TLSKeyFile, r)
-	})
+	if config.ServerHost != "" {
+		g.Go(func() error {
+			addr := fmt.Sprintf("%s:%d", config.ServerHost, config.ServerPort)
+			fmt.Printf("Listening: https://%s/\n", addr)
+			return http.ListenAndServeTLS(addr, config.TLSCertFile, config.TLSKeyFile, r)
+		})
+	}
 
-	g.Go(func() error {
-		addr := fmt.Sprintf("%s:%d", config.LocalHost, config.LocalPort)
-		fmt.Printf("Listening: http://%s/\n", addr)
-		return http.ListenAndServe(addr, r)
-	})
+	if config.LocalHost != "" {
+		g.Go(func() error {
+			addr := fmt.Sprintf("%s:%d", config.LocalHost, config.LocalPort)
+			fmt.Printf("Listening: http://%s/\n", addr)
+			return http.ListenAndServe(addr, r)
+		})
+	}
 
 	err = g.Wait()
 
