@@ -10,13 +10,14 @@
     <div class="container">
         <div class="row">
             <div class="col-xs-12 col-md-6 offset-md-3">
-                <ul class="nav flex-column nav-pills text-center">
-                    {{range .Cameras}}
-                    <li class="nav-item">
-                        <a class="nav-link active mb-2" href="{{.ViewURL}}">{{.Label}}</a>
-                    </li>
-					{{end}}
-                </ul>
+                {{range .Cameras}}
+                <div class="d-flex w-100">
+                    <a class="btn btn-primary flex-fill m-1" href="{{.ViewURL}}">{{.Label}}</a>
+                    {{ if .Files }}
+                        <a class="btn btn-primary m-1" href="{{.FileURL ""}}"><i class="fa-regular fa-image"></i></a>
+                    {{ end }}
+                </div>
+                {{end}}
             </div>
         </div>
     </div>

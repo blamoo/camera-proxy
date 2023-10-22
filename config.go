@@ -5,9 +5,11 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net"
 	"os"
+	"path/filepath"
+	"strings"
 )
 
 var config Config
@@ -16,16 +18,25 @@ type Camera struct {
 	Name  string
 	URL   string
 	Label string
+	Files string
 }
 
-func (c *Camera) ViewURL() string {
+func (c Camera) ViewURL() string {
 	return fmt.Sprintf("/camera/%s", c.Name)
+}
+
+func (c Camera) FileURL(f ...string) string {
+	j := filepath.Join(f...)
+	j = strings.ReplaceAll(j, "\\", "/")
+	return fmt.Sprintf("/camera/files/%s/%s", c.Name, j)
 }
 
 type Config struct {
 	Debug               bool
 	ServerHost          string
 	ServerPort          int
+	LocalHost           string
+	LocalPort           int
 	SessionCookieName   string
 	SessionCookieMaxAge int
 	TLSCertFile         string
@@ -36,6 +47,16 @@ type Config struct {
 	AuthWhitelist       []string
 }
 
+func (c Config) FindCamera(name string) (Camera, error) {
+	for _, camera := range c.Cameras {
+		if name == camera.Name {
+			return camera, nil
+		}
+	}
+
+	return Camera{}, fmt.Errorf("Câmera não encontrada")
+}
+
 func InitializeConfig() error {
 	var err error
 	configFile, err := os.Open(configPath)
@@ -44,7 +65,7 @@ func InitializeConfig() error {
 		return err
 	}
 
-	configBytes, err := ioutil.ReadAll(configFile)
+	configBytes, err := io.ReadAll(configFile)
 	if err != nil {
 		return err
 	}

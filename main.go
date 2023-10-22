@@ -1,12 +1,17 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
+	"io/fs"
 	"net/http"
 	"os"
+	"path/filepath"
+	"sort"
 
 	"github.com/gorilla/mux"
+	"golang.org/x/sync/errgroup"
 )
 
 var configPath string
@@ -122,12 +127,118 @@ func main() {
 		RenderError(w, r, "Câmera não encontrada")
 	})
 
+	r.HandleFunc("/camera/files/{name}/{path:.*}", func(w http.ResponseWriter, r *http.Request) {
+		_, ret := HandleAuth(w, r)
+		if ret {
+			return
+		}
+
+		vars := mux.Vars(r)
+		vName, _ := vars["name"]
+		vPath, _ := vars["path"]
+
+		camera, err := config.FindCamera(vName)
+
+		if err != nil {
+			RenderError(w, r, err.Error())
+			return
+		}
+
+		path := filepath.Join(camera.Files, vPath)
+		path = filepath.Clean(path)
+
+		if err != nil {
+			RenderError(w, r, err.Error())
+			return
+		}
+
+		file, err := os.Stat(path)
+
+		if err != nil {
+			RenderError(w, r, err.Error())
+			return
+		}
+
+		if file.IsDir() {
+			type FileWrap struct {
+				IsDir      bool
+				Name       string
+				Type       string
+				Embeddable bool
+			}
+
+			data := struct {
+				Title  string
+				Camera Camera
+				VPath  string
+				File   fs.FileInfo
+				Files  []FileWrap
+			}{
+				Title:  fmt.Sprintf("Arquivos de %s", camera.Name),
+				VPath:  vPath,
+				File:   file,
+				Camera: camera,
+			}
+
+			o, err := os.ReadDir(path)
+
+			if err != nil {
+				RenderError(w, r, err.Error())
+				return
+			}
+
+			data.Files = make([]FileWrap, len(o))
+			for k, v := range o {
+				var tmp FileWrap
+
+				tmp.Name = v.Name()
+				tmp.IsDir = v.IsDir()
+
+				if !v.IsDir() {
+					switch filepath.Ext(tmp.Name) {
+					case ".jpg", ".jpeg", ".png":
+						tmp.Type = "Image"
+						tmp.Embeddable = true
+
+					case ".mp4":
+						tmp.Type = "Video"
+						tmp.Embeddable = true
+					}
+				}
+				data.Files[k] = tmp
+			}
+
+			sort.SliceStable(data.Files, func(i, j int) bool {
+				return data.Files[i].Name > data.Files[j].Name
+			})
+
+			RenderPage(w, r, "files.gohtml", data)
+			return
+		}
+
+		http.ServeFile(w, r, path)
+	})
+
 	r.HandleFunc("/favicon.ico", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "image/x-icon")
 		http.ServeFile(w, r, "static/favicon.ico")
 	})
 
-	err = http.ListenAndServeTLS(fmt.Sprintf("%s:%d", config.ServerHost, config.ServerPort), config.TLSCertFile, config.TLSKeyFile, r)
+	g, _ := errgroup.WithContext(context.Background())
+
+	g.Go(func() error {
+		addr := fmt.Sprintf("%s:%d", config.ServerHost, config.ServerPort)
+		fmt.Printf("Listening: https://%s/\n", addr)
+		return http.ListenAndServeTLS(addr, config.TLSCertFile, config.TLSKeyFile, r)
+	})
+
+	g.Go(func() error {
+		addr := fmt.Sprintf("%s:%d", config.LocalHost, config.LocalPort)
+		fmt.Printf("Listening: http://%s/\n", addr)
+		return http.ListenAndServe(addr, r)
+	})
+
+	err = g.Wait()
 
 	if err != nil {
 		fmt.Println(err)
