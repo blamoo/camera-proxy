@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"time"
 
 	"github.com/gorilla/mux"
 	"golang.org/x/sync/errgroup"
@@ -165,6 +166,7 @@ func main() {
 				Name       string
 				Type       string
 				Embeddable bool
+				Mtime      time.Time
 			}
 
 			data := struct {
@@ -194,7 +196,11 @@ func main() {
 				tmp.Name = v.Name()
 				tmp.IsDir = v.IsDir()
 
+				info, _ := v.Info()
+				tmp.Mtime = info.ModTime()
+
 				if !v.IsDir() {
+
 					switch filepath.Ext(tmp.Name) {
 					case ".jpg", ".jpeg", ".png":
 						tmp.Type = "Image"
@@ -209,7 +215,7 @@ func main() {
 			}
 
 			sort.SliceStable(data.Files, func(i, j int) bool {
-				return data.Files[i].Name > data.Files[j].Name
+				return data.Files[i].Mtime.UnixMicro() > data.Files[j].Mtime.UnixMicro()
 			})
 
 			RenderPage(w, r, "files.gohtml", data)
