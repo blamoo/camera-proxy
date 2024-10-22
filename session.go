@@ -14,6 +14,8 @@ var sessionStore *sessions.FilesystemStore
 
 func InitializeSession() {
 	sessionStore = sessions.NewFilesystemStore("", config.SessionCookieKey)
+	sessionStore.Options.Secure = false
+	sessionStore.Options.SameSite = http.SameSiteStrictMode
 	sessionStore.MaxAge(config.SessionCookieMaxAge)
 }
 
