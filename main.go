@@ -148,11 +148,6 @@ func main() {
 		path := filepath.Join(camera.Files, vPath)
 		path = filepath.Clean(path)
 
-		if err != nil {
-			RenderError(w, r, err.Error())
-			return
-		}
-
 		file, err := os.Stat(path)
 
 		if err != nil {
