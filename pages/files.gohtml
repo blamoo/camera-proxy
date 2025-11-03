@@ -12,13 +12,9 @@
             <div class="card-body d-flex justify-content-center">
                 
             </div>
-            <div class="card-footer d-flex justify-content-center">
-                <div class="btn-group">
-                    <button type="button" class="btn btn-primary prev"><i class="fa-solid fa-arrow-left fa-fw"></i></button>
-                    <button type="button" class="btn btn-primary fullscreen"><i class="fa-solid fa-expand fa-fw"></i></button>
-                    <button type="button" class="btn btn-primary exitFullscreen"><i class="fa-solid fa-compress fa-fw"></i></button>
-                    <button type="button" class="btn btn-primary next"><i class="fa-solid fa-arrow-right fa-fw"></i></button>
-                </div>
+            <div class="card-footer d-flex justify-content-center flex-column">
+                <label for="slider"></label>
+                <input type="range" id="slider" min="0" max="0" value="0" />
             </div>
         </div>
 
@@ -56,12 +52,8 @@
     </div>
     {{template "e_footer.gohtml" .}}
     <style>
-        #embed:fullscreen button.fullscreen {
-            display: none;
-        }
-        
-        #embed:not(:fullscreen) button.exitFullscreen {
-            display: none;
+        .slider {
+            width: 100%;
         }
     </style>
     <script>
@@ -69,10 +61,13 @@
             var $e = $('[data-embeddable]');
             var $embed = $('#embed');
             var $embedTarget = $embed.find('div.card-body');
-            var $next = $embed.find('.next');
-            var $prev = $embed.find('.prev');
-            var $fullscreen = $embed.find('.fullscreen');
-            var $exitFullscreen = $embed.find('.exitFullscreen');
+            var $slider = $embed.find('#slider');
+            var $sliderLabel = $($slider[0].labels[0]);
+
+            $slider.attr('max', $e.length - 1);
+            $slider.on('input', function (e) {
+                changeEmbed(parseInt(e.currentTarget.value));
+            });
     
             var currEmbed = 0;
     
@@ -81,14 +76,6 @@
             }
     
             $embed.show();
-            
-            if (location.hash.length > 0) {
-                var h = location.hash.substring(1);
-                currEmbed = parseInt(h);
-                if (!(currEmbed in $e)) {
-                    currEmbed = 0;
-                }
-            }
             
             function preloadImage(url) {
                 img = new Image();
@@ -101,8 +88,12 @@
                 }
 
                 currEmbed = to;
-                location.replace('#'.concat(to));
+                //location.replace('#'.concat(to));
                 var a = $e[to];
+                $sliderLabel.html(a.dataset.name);
+                $slider.val(to);
+                $e.removeClass('btn-secondary');
+                a.classList.add('btn-secondary');
 
                 switch (a.getAttribute('data-type')) {
                     case 'Image':
@@ -134,21 +125,6 @@
                 if (prevEmbed in $e) {
                     preloadImage($e[prevEmbed].href);
                 }
-                
-                var isFirst = to == 0;
-                var isLast = to == $e.length - 1;
-
-                if (isFirst) {
-                    $prev.attr('disabled', true);
-                } else {
-                    $prev.removeAttr('disabled', true);
-                }
-
-                if (isLast) {
-                    $next.attr('disabled', true);
-                } else {
-                    $next.removeAttr('disabled', true);
-                }
             }
 
             window.addEventListener('keydown', function (e) {
@@ -178,16 +154,6 @@
                         break;
                 }
             });
-            
-            $prev.on("click", function (e) {
-                e.preventDefault();
-                changeEmbed(currEmbed - 1);
-            });
-
-            $next.on("click", function (e) {
-                e.preventDefault();
-                changeEmbed(currEmbed + 1);
-            });
 
             $embedTarget.on("click", "img", function (e) {
                 e.preventDefault();
@@ -199,17 +165,6 @@
                     changeEmbed(currEmbed - 1);
                 }
             });
-
-            $fullscreen.on("click", function (e) {
-                e.preventDefault();
-                $embed[0].requestFullscreen();
-            });
-
-            $exitFullscreen.on("click", function (e) {
-                e.preventDefault();
-                document.exitFullscreen();
-            });
-                        
 
             $(document.body).on('click', '[data-set]', function (e) {
                 var set = e.currentTarget.getAttribute('data-set');
